@@ -19,7 +19,6 @@
         .stats-panel { width: 380px; background: #11141b; padding: 20px; border-radius: 15px; border: 1px solid #333; text-align: left; }
         .qubit-card { margin-bottom: 15px; padding: 15px; border-radius: 8px; border-left: 5px solid #444; background: #0a0c10; color: #00ffcc; position: relative; }
         
-        /* 3-Line Bloch Sphere Display */
         #vector-circle { width: 90px; height: 90px; border: 2px solid #333; border-radius: 50%; position: absolute; right: 10px; top: 10px; background: radial-gradient(circle, #111, #000); overflow: hidden; }
         .needle { width: 2px; height: 45px; position: absolute; left: 44px; top: 0; transform-origin: bottom; transition: 0.1s; opacity: 0.2; }
         #n-red { background: #ff4b2b; }
@@ -38,7 +37,7 @@
 <body>
 
     <div class="brand-header">GROW-WIN</div>
-    <h1>QUANTUM PIN-POINT OBSERVER</h1>
+    <h1>QUANTUM STATE OBSERVER</h1>
     <button id="start-btn">INITIALIZE SYSTEM</button>
     
     <div class="main-container">
@@ -77,14 +76,14 @@
             <tr>
                 <th>DETECTION</th>
                 <th>Frequency (Hz)</th>
-                <th>WAVEFORM</th>
+                <th>Energy State (eV)</th>
                 <th>QUANTUM STATE</th>
             </tr>
         </thead>
         <tbody>
-            <tr id="row-red"><td>Red LED</td><td>Stable</td><td>Ground Wave</td><td>|0⟩ (Ground)</td></tr>
-            <tr id="row-white"><td>White LED</td><td>Stable</td><td>Valence Wave</td><td>|1⟩ (Valence)</td></tr>
-            <tr id="row-super"><td>Dual LED</td><td>Oscillating</td><td>Harmonic Mix</td><td>|ψ⟩ (Superposition)</td></tr>
+            <tr id="row-red"><td>Red Signal</td><td><span id="f-red">STABLE</span></td><td>Low Energy State</td><td style="font-size: 1.2rem; font-weight: bold;">|0⟩</td></tr>
+            <tr id="row-white"><td>White Signal</td><td><span id="f-white">STABLE</span></td><td>High Energy State</td><td style="font-size: 1.2rem; font-weight: bold;">|1⟩</td></tr>
+            <tr id="row-super"><td>Dual Signal</td><td><span id="f-super">OSCILLATING</span></td><td>Superposition State</td><td style="font-size: 1.2rem; font-weight: bold;">|ψ⟩</td></tr>
         </tbody>
     </table>
 
@@ -125,7 +124,6 @@
             let time = Date.now() / 50;
             let isMixing = hasRed && hasWhite;
             
-            // Red = Ground (Bottom), White = Valence (Top)
             let rPos = hasRed ? 100 + (Math.sin(time) * (hz * 1.5)) : 120;
             let wPos = hasWhite ? 40 + (Math.cos(time) * (hz * 1.5)) : 30;
             
@@ -159,8 +157,8 @@
             for (let i = 0; i < data.length; i += 4) {
                 let r = data[i], g = data[i+1], b = data[i+2];
                 totalB += (r + g + b) / 3;
-                if (r > threshold && g < threshold/1.3) rH++; // Red
-                if (r > threshold && g > threshold/1.1 && b > threshold/1.1) wH++; // White
+                if (r > threshold && g < threshold/1.3) rH++; 
+                if (r > threshold && g > threshold/1.1 && b > threshold/1.1) wH++; 
             }
 
             let avgB = totalB / (data.length / 4);
@@ -181,20 +179,28 @@
             document.querySelectorAll('tr').forEach(t => t.classList.remove('active-row'));
             const status = document.getElementById('q-status');
             const det = document.getElementById('detect-text');
+            
+            const fRed = document.getElementById('f-red');
+            const fWhite = document.getElementById('f-white');
+            const fSuper = document.getElementById('f-super');
+
+            fRed.innerText = (red && hz > 0) ? "OSCILLATING" : "STABLE";
+            fWhite.innerText = (white && hz > 0) ? "OSCILLATING" : "STABLE";
+            fSuper.innerText = (red && white && hz > 0) ? "OSCILLATING" : "STABLE";
 
             if (red && white) {
-                status.innerText = "SUPERPOSITION |ψ>";
-                det.innerText = "Harmonic Mix Active";
+                status.innerText = "|ψ>";
+                det.innerText = hz > 0 ? "Oscillating Signal" : "Stable Mix";
                 qSym.innerText = "Ψ";
                 document.getElementById('row-super').classList.add('active-row');
             } else if (red) {
-                status.innerText = "GROUND |0>";
-                det.innerText = "Red Ground State Detected";
+                status.innerText = "|0>";
+                det.innerText = hz > 0 ? "Oscillating Ground" : "Stable Ground";
                 qSym.innerText = "0";
                 document.getElementById('row-red').classList.add('active-row');
             } else if (white) {
-                status.innerText = "VALENCE |1>";
-                det.innerText = "White Valence State Detected";
+                status.innerText = "|1>";
+                det.innerText = hz > 0 ? "Oscillating Valence" : "Stable Valence";
                 qSym.innerText = "1";
                 document.getElementById('row-white').classList.add('active-row');
             } else {
