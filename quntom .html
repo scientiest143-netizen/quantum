@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>India DIY Quantum - Pin-Point Sensor</title>
+    <style>
+        body { background: #05070a; color: #00ffcc; font-family: 'Courier New', monospace; margin: 0; padding: 20px; text-align: center; }
+        .main-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+        
+        /* Vision Box with Center Target */
+        .vision-box { position: relative; border: 5px solid #1a1d23; border-radius: 15px; background: #000; overflow: hidden; display: inline-block; }
+        video { width: 540px; height: 405px; transform: scaleX(-1); }
+        .pin-target { position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; border: 2px dashed #ffea00; transform: translate(-50%, -50%); border-radius: 5px; pointer-events: none; }
+        .pin-target::before { content: "AIM LED HERE"; position: absolute; top: -20px; width: 100px; left: -30px; font-size: 0.6rem; color: #ffea00; }
+
+        /* Qubit Status Cards */
+        .stats-panel { width: 380px; background: #11141b; padding: 20px; border-radius: 15px; border: 1px solid #333; text-align: left; }
+        .qubit-card { margin-bottom: 15px; padding: 15px; border-radius: 8px; border-left: 5px solid #444; background: #0a0c10; }
+        .active-red { border-left-color: #ff4b2b; box-shadow: 0 0 10px rgba(255, 75, 43, 0.2); }
+        .active-white { border-left-color: #ffffff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); }
+        .super-active { border-left-color: #ffea00; background: rgba(255, 234, 0, 0.15); }
+
+        /* Moving Table below */
+        .truth-table { margin: 30px auto; width: 100%; max-width: 950px; border-collapse: collapse; background: #111; }
+        .truth-table th, .truth-table td { border: 1px solid #222; padding: 12px; transition: 0.3s; color: #444; }
+        .truth-table th { color: #00ffcc; background: #1a1d23; }
+
+        /* Dynamic Table Highlights */
+        tr.active-row td { color: #fff !important; background: #004433 !important; }
+        tr.active-super td { color: #000 !important; background: #ffea00 !important; font-weight: bold; }
+        
+        .hz-val { color: #ffea00; font-weight: bold; font-size: 1.5rem; }
+    </style>
+</head>
+<body>
+
+    <h1>QUANTUM PIN-POINT OBSERVER</h1>
+    <p>Aim your LED at the center box. Measuring Flicker vs. Solid State.</p>
+
+    <div class="main-container">
+        <div class="vision-box">
+            <video id="video" autoplay playsinline></video>
+            <div class="pin-target"></div>
+            <canvas id="canvas" width="540" height="405" style="display:none;"></canvas>
+        </div>
+
+        <div class="stats-panel">
+            <div id="q1-card" class="qubit-card">
+                <small>RED QUBIT STATUS</small>
+                <div id="r-text" style="font-size: 1.1rem;">OFF |0></div>
+            </div>
+            <div id="q2-card" class="qubit-card">
+                <small>WHITE QUBIT STATUS</small>
+                <div id="w-text" style="font-size: 1.1rem;">OFF |0></div>
+            </div>
+            <div class="qubit-card" style="border-left-color: #00aaff;">
+                <small>DETECTED FREQUENCY</small>
+                <div id="hz-text" class="hz-val">0 Hz</div>
+            </div>
+            <label style="font-size:0.7rem; color:#888;">CALIBRATE LIGHT SENSITIVITY</label>
+            <input type="range" id="sens" min="30" max="240" value="120" style="width:100%;">
+        </div>
+    </div>
+
+    <table class="truth-table">
+        <thead>
+            <tr>
+                <th>DETECTION</th>
+                <th>FREQUENCY</th>
+                <th>MODE</th>
+                <th>QUBIT STATE</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr id="row-off"><td>No Light</td><td>0 Hz</td><td>IDLE</td><td>|0⟩</td></tr>
+            <tr id="row-solid"><td>Steady LED</td><td>Fixed</td><td>CLASSICAL</td><td>|1⟩ (Collapsed)</td></tr>
+            <tr id="row-super"><td>Fast Pulse</td><td><span id="hz-tab">0</span> Hz</td><td>QUANTUM</td><td>|ψ⟩ (Superposition)</td></tr>
+            <tr id="row-parallel"><td>Multi-Flicker</td><td>Max Speed</td><td>PARALLEL</td><td>|ψψ⟩ (4-States)</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const sensSlider = document.getElementById('sens');
+
+        let lastBrightness = 0, pulses = 0, lastTime = Date.now();
+
+        navigator.mediaDevices.getUserMedia({ video: true }).then(s => video.srcObject = s);
+
+        function detect() {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            // Focusing on the small 40x40 area in the center (PIN point)
+            const data = ctx.getImageData(canvas.width/2-20, canvas.height/2-20, 40, 40).data;
+            const threshold = parseInt(sensSlider.value);
+
+            let rH = 0, wH = 0, totalB = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i], g = data[i+1], b = data[i+2];
+                totalB += (r + g + b) / 3;
+                if (r > threshold && g < threshold/1.3) rH++;
+                if (r > threshold && g > threshold && b > threshold) wH++;
+            }
+
+            // High-Sensitivity Frequency Pulse detection
+            let avgB = totalB / (data.length / 4);
+            if (Math.abs(avgB - lastBrightness) > 12) pulses++;
+            lastBrightness = avgB;
+
+            let now = Date.now();
+            if (now - lastTime >= 1000) {
+                let currentHz = Math.floor(pulses / 2);
+                document.getElementById('hz-text').innerText = currentHz + " Hz";
+                document.getElementById('hz-tab').innerText = currentHz;
+                updateInterface(rH, wH, currentHz);
+                pulses = 0; lastTime = now;
+            }
+            requestAnimationFrame(detect);
+        }
+
+        function updateInterface(r, w, hz) {
+            document.querySelectorAll('tr').forEach(r => r.className = '');
+            const rCard = document.getElementById('q1-card');
+            const wCard = document.getElementById('q2-card');
+            
+            let hasRed = r > 10, hasWhite = w > 10;
+            let isSuper = hz >= 10;
+
+            // Qubit Box Update
+            document.getElementById('r-text').innerText = hasRed ? (isSuper ? "SUPERPOSITION" : "COLLAPSED |1>") : "OFF |0>";
+            document.getElementById('w-text').innerText = hasWhite ? (isSuper ? "SUPERPOSITION" : "COLLAPSED |1>") : "OFF |0>";
+            
+            rCard.className = "qubit-card " + (hasRed ? (isSuper ? "super-active" : "active-red") : "");
+            wCard.className = "qubit-card " + (hasWhite ? (isSuper ? "super-active" : "active-white") : "");
+
+            // Table Highlight Update
+            if (isSuper) {
+                if (hasRed && hasWhite) {
+                    document.getElementById('row-parallel').className = 'active-super';
+                } else {
+                    document.getElementById('row-super').className = 'active-super';
+                }
+            } else if (hasRed || hasWhite) {
+                document.getElementById('row-solid').className = 'active-row';
+            } else {
+                document.getElementById('row-off').className = 'active-row';
+            }
+        }
+        video.onplay = () => detect();
+    </script>
+</body>
+</html>
