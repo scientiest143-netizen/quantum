@@ -30,6 +30,7 @@
 
         .truth-table { margin: 30px auto; width: 100%; max-width: 950px; border-collapse: collapse; background: #111; }
         .truth-table th, .truth-table td { border: 1px solid #222; padding: 12px; color: #00ffcc; }
+        .ev-val { color: #ffea00; font-size: 0.85rem; margin-left: 8px; }
         
         footer { margin-top: 40px; color: #444; font-size: 0.8rem; letter-spacing: 2px; }
     </style>
@@ -81,9 +82,24 @@
             </tr>
         </thead>
         <tbody>
-            <tr id="row-red"><td>Red Signal</td><td><span id="f-red">STABLE</span></td><td>Low Energy State</td><td style="font-size: 1.2rem; font-weight: bold;">|0⟩</td></tr>
-            <tr id="row-white"><td>White Signal</td><td><span id="f-white">STABLE</span></td><td>High Energy State</td><td style="font-size: 1.2rem; font-weight: bold;">|1⟩</td></tr>
-            <tr id="row-super"><td>Dual Signal</td><td><span id="f-super">OSCILLATING</span></td><td>Superposition State</td><td style="font-size: 1.2rem; font-weight: bold;">|ψ⟩</td></tr>
+            <tr id="row-red">
+                <td>Red Signal</td>
+                <td><span id="f-red">STABLE</span></td>
+                <td>Low Energy State <span class="ev-val">(1.95eV)</span></td>
+                <td style="font-size: 1.2rem; font-weight: bold;">|0⟩</td>
+            </tr>
+            <tr id="row-white">
+                <td>White Signal</td>
+                <td><span id="f-white">STABLE</span></td>
+                <td>High Energy State <span class="ev-val">(2.75eV)</span></td>
+                <td style="font-size: 1.2rem; font-weight: bold;">|1⟩</td>
+            </tr>
+            <tr id="row-super">
+                <td>Dual Signal</td>
+                <td><span id="f-super">OSCILLATING</span></td>
+                <td>Superposition State</td>
+                <td style="font-size: 1.2rem; font-weight: bold;">|ψ⟩</td>
+            </tr>
         </tbody>
     </table>
 
