@@ -76,16 +76,15 @@
         <thead>
             <tr>
                 <th>DETECTION</th>
-                <th>MIXER Hz</th>
+                <th>Frequency (Hz)</th>
                 <th>WAVEFORM</th>
                 <th>QUANTUM STATE</th>
             </tr>
         </thead>
         <tbody>
-            <tr id="row-white"><td>White LED</td><td>Stable</td><td>Ground Wave</td><td>|0⟩</td></tr>
-            <tr id="row-red"><td>Red LED</td><td>Stable</td><td>Excited Wave</td><td>|1⟩</td></tr>
-            <tr id="row-super"><td>Dual LED</td><td>Oscillating</td><td>Harmonic Mix</td><td>|ψ⟩ (Super)</td></tr>
-            <tr id="row-parallel"><td>Fast Blink</td><td>Max</td><td>Standing Wave</td><td>|ψψ⟩ (Parallel)</td></tr>
+            <tr id="row-red"><td>Red LED</td><td>Stable</td><td>Ground Wave</td><td>|0⟩ (Ground)</td></tr>
+            <tr id="row-white"><td>White LED</td><td>Stable</td><td>Valence Wave</td><td>|1⟩ (Valence)</td></tr>
+            <tr id="row-super"><td>Dual LED</td><td>Oscillating</td><td>Harmonic Mix</td><td>|ψ⟩ (Superposition)</td></tr>
         </tbody>
     </table>
 
@@ -123,17 +122,16 @@
             sCtx.fillRect(0,0, specCanvas.width, specCanvas.height);
             rWave.shift(); wWave.shift();
             
-            // Harmonic Standing Wave Logic
             let time = Date.now() / 50;
             let isMixing = hasRed && hasWhite;
             
-            let rPos = hasRed ? 90 + (Math.sin(time) * (hz * 1.5)) : 110;
-            let wPos = hasWhite ? 50 + (Math.cos(time) * (hz * 1.5)) : 30;
+            // Red = Ground (Bottom), White = Valence (Top)
+            let rPos = hasRed ? 100 + (Math.sin(time) * (hz * 1.5)) : 120;
+            let wPos = hasWhite ? 40 + (Math.cos(time) * (hz * 1.5)) : 30;
             
-            // If mixing, pull waves toward center (Harmonic)
             if(isMixing) {
-                rPos -= 20;
-                wPos += 20;
+                rPos -= 30;
+                wPos += 30;
             }
 
             rWave.push(rPos); wWave.push(wPos);
@@ -147,7 +145,6 @@
             for(let i=0; i<100; i++) sCtx.lineTo((specCanvas.width/100)*i, rWave[i]);
             sCtx.stroke();
             
-            // Needle acts as Bloch Phase
             nMain.style.transform = `rotate(${hz * 12}deg)`;
             nRed.style.opacity = hasRed ? "1" : "0.1";
             nWhite.style.opacity = hasWhite ? "1" : "0.1";
@@ -162,8 +159,8 @@
             for (let i = 0; i < data.length; i += 4) {
                 let r = data[i], g = data[i+1], b = data[i+2];
                 totalB += (r + g + b) / 3;
-                if (r > threshold && g < threshold/1.3) rH++;
-                if (r > threshold && g > threshold/1.1 && b > threshold/1.1) wH++;
+                if (r > threshold && g < threshold/1.3) rH++; // Red
+                if (r > threshold && g > threshold/1.1 && b > threshold/1.1) wH++; // White
             }
 
             let avgB = totalB / (data.length / 4);
@@ -185,25 +182,20 @@
             const status = document.getElementById('q-status');
             const det = document.getElementById('detect-text');
 
-            if (red && white && hz >= 45) {
-                status.innerText = "PARALLEL |ψψ>";
-                det.innerText = "Resonant Harmonics Detected";
-                qSym.innerText = "Φ";
-                document.getElementById('row-parallel').classList.add('active-row');
-            } else if (red && white) {
+            if (red && white) {
                 status.innerText = "SUPERPOSITION |ψ>";
-                det.innerText = "Standing Wave Active";
+                det.innerText = "Harmonic Mix Active";
                 qSym.innerText = "Ψ";
                 document.getElementById('row-super').classList.add('active-row');
             } else if (red) {
-                status.innerText = "EXCITED |1>";
-                det.innerText = "Red State Collapsed";
-                qSym.innerText = "1";
+                status.innerText = "GROUND |0>";
+                det.innerText = "Red Ground State Detected";
+                qSym.innerText = "0";
                 document.getElementById('row-red').classList.add('active-row');
             } else if (white) {
-                status.innerText = "GROUND |0>";
-                det.innerText = "White State Collapsed";
-                qSym.innerText = "0";
+                status.innerText = "VALENCE |1>";
+                det.innerText = "White Valence State Detected";
+                qSym.innerText = "1";
                 document.getElementById('row-white').classList.add('active-row');
             } else {
                 status.innerText = "VACUUM";
