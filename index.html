@@ -7,41 +7,42 @@
         body { background: #05070a; color: #00ffcc; font-family: 'Courier New', monospace; margin: 0; padding: 20px; text-align: center; }
         .main-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
         
-        /* Vision Box - FIXED FOR BACK CAMERA */
         .vision-box { position: relative; border: 5px solid #1a1d23; border-radius: 15px; background: #000; overflow: hidden; display: inline-block; }
-        video { width: 100%; max-width: 540px; height: auto; display: block; } /* Removed scaleX for back camera */
+        video { width: 100%; max-width: 540px; height: auto; display: block; }
         
         .pin-target { position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; border: 2px dashed #ffea00; transform: translate(-50%, -50%); border-radius: 5px; pointer-events: none; z-index: 10; }
         .pin-target::before { content: "AIM LED HERE"; position: absolute; top: -20px; width: 100px; left: -30px; font-size: 0.6rem; color: #ffea00; }
 
-        /* Qubit Status Cards */
+        #spectrometer { width: 100%; height: 60px; background: #000; border: 1px solid #333; margin-top: 10px; border-radius: 5px; }
+
         .stats-panel { width: 380px; background: #11141b; padding: 20px; border-radius: 15px; border: 1px solid #333; text-align: left; }
-        .qubit-card { margin-bottom: 15px; padding: 15px; border-radius: 8px; border-left: 5px solid #444; background: #0a0c10; color: #00ffcc; } /* Changed text to Green */
+        .qubit-card { margin-bottom: 15px; padding: 15px; border-radius: 8px; border-left: 5px solid #444; background: #0a0c10; color: #00ffcc; }
         
         .active-red { border-left-color: #ff4b2b; box-shadow: 0 0 10px rgba(255, 75, 43, 0.2); }
         .active-white { border-left-color: #ffffff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); }
         .super-active { border-left-color: #ffea00; background: rgba(255, 234, 0, 0.15); color: #ffea00; }
 
-        /* Truth Table - Green Letters */
         .truth-table { margin: 30px auto; width: 100%; max-width: 950px; border-collapse: collapse; background: #111; }
-        .truth-table th, .truth-table td { border: 1px solid #222; padding: 12px; transition: 0.3s; color: #00ffcc; } /* Changed text to Green */
+        .truth-table th, .truth-table td { border: 1px solid #222; padding: 12px; transition: 0.3s; color: #00ffcc; }
         .truth-table th { color: #00ffcc; background: #1a1d23; }
 
         tr.active-row td { color: #fff !important; background: #004433 !important; }
         tr.active-super td { color: #000 !important; background: #ffea00 !important; font-weight: bold; }
         .hz-val { color: #ffea00; font-weight: bold; font-size: 1.5rem; }
+        .shutter-val { color: #00aaff; font-size: 0.9rem; margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <h1>QUANTUM PIN-POINT OBSERVER</h1>
-    <p style="color: #00ffcc;">Aim your LED at the center box. Measuring Flicker vs. Solid State.</p>
+    <p style="color: #00ffcc;">Advanced Shutter Counter: Measuring Binary Transitions</p>
 
     <div class="main-container">
         <div class="vision-box">
             <video id="video" autoplay playsinline></video>
             <div class="pin-target"></div>
             <canvas id="canvas" width="540" height="405" style="display:none;"></canvas>
+            <canvas id="spectrometer"></canvas>
         </div>
 
         <div class="stats-panel">
@@ -54,10 +55,11 @@
                 <div id="w-text" style="font-size: 1.1rem;">OFF |0></div>
             </div>
             <div class="qubit-card" style="border-left-color: #00aaff;">
-                <small>DETECTED FREQUENCY</small>
+                <small>QUBIT FREQUENCY & SHUTTER</small>
                 <div id="hz-text" class="hz-val">0 Hz</div>
+                <div id="shutter-text" class="shutter-val">Transitions: 0/sec</div>
             </div>
-            <label style="font-size:0.7rem; color:#888;">CALIBRATE LIGHT SENSITIVITY</label>
+            <label style="font-size:0.7rem; color:#888;">CALIBRATE SENSITIVITY</label>
             <input type="range" id="sens" min="30" max="240" value="120" style="width:100%;">
         </div>
     </div>
@@ -67,15 +69,15 @@
             <tr>
                 <th>DETECTION</th>
                 <th>FREQUENCY</th>
-                <th>MODE</th>
+                <th>SHUTTER COUNT</th>
                 <th>QUBIT STATE</th>
             </tr>
         </thead>
         <tbody>
-            <tr id="row-off"><td>No Light</td><td>0 Hz</td><td>IDLE</td><td>|0⟩</td></tr>
-            <tr id="row-solid"><td>Steady LED</td><td>Fixed</td><td>CLASSICAL</td><td>|1⟩ (Collapsed)</td></tr>
-            <tr id="row-super"><td>Fast Pulse</td><td><span id="hz-tab">0</span> Hz</td><td>QUANTUM</td><td>|ψ⟩ (Superposition)</td></tr>
-            <tr id="row-parallel"><td>Multi-Flicker</td><td>Max Speed</td><td>PARALLEL</td><td>|ψψ⟩ (4-States)</td></tr>
+            <tr id="row-off"><td>No Light</td><td>0 Hz</td><td>0 pts</td><td>|0⟩</td></tr>
+            <tr id="row-solid"><td>Steady LED</td><td>Fixed</td><td>Stable</td><td>|1⟩ (Collapsed)</td></tr>
+            <tr id="row-super"><td>Fast Pulse</td><td><span id="hz-tab">0</span> Hz</td><td><span id="sh-tab">0</span> pts</td><td>|ψ⟩ (Super)</td></tr>
+            <tr id="row-parallel"><td>Multi-Flicker</td><td>Max Speed</td><td>High Velocity</td><td>|ψψ⟩ (Parallel)</td></tr>
         </tbody>
     </table>
 
@@ -83,14 +85,30 @@
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+        const specCanvas = document.getElementById('spectrometer');
+        const sCtx = specCanvas.getContext('2d');
         const sensSlider = document.getElementById('sens');
 
         let lastBrightness = 0, pulses = 0, lastTime = Date.now();
+        let waveArr = new Array(100).fill(30);
 
-        // FIXED: BACK CAMERA ACCESS
         navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment" } 
+            video: { facingMode: "environment", frameRate: { ideal: 60 } } 
         }).then(s => video.srcObject = s);
+
+        function drawSpectrometer(hz) {
+            sCtx.clearRect(0, 0, specCanvas.width, specCanvas.height);
+            sCtx.beginPath();
+            sCtx.strokeStyle = hz > 0 ? (hz > 40 ? '#ffea00' : '#00ffcc') : '#444';
+            sCtx.lineWidth = 2;
+            waveArr.shift();
+            let val = hz > 0 ? 30 + (Math.sin(Date.now()/50) * (hz * 1.5)) : 30;
+            waveArr.push(val);
+            for(let i=0; i<waveArr.length; i++) {
+                sCtx.lineTo((specCanvas.width/100)*i, waveArr[i]);
+            }
+            sCtx.stroke();
+        }
 
         function detect() {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -106,17 +124,20 @@
             }
 
             let avgB = totalB / (data.length / 4);
-            if (Math.abs(avgB - lastBrightness) > 12) pulses++;
+            if (Math.abs(avgB - lastBrightness) > 8) pulses++;
             lastBrightness = avgB;
 
             let now = Date.now();
             if (now - lastTime >= 1000) {
                 let currentHz = Math.floor(pulses / 2);
                 document.getElementById('hz-text').innerText = currentHz + " Hz";
+                document.getElementById('shutter-text').innerText = "Transitions: " + pulses + "/sec";
                 document.getElementById('hz-tab').innerText = currentHz;
+                document.getElementById('sh-tab').innerText = pulses;
                 updateInterface(rH, wH, currentHz);
                 pulses = 0; lastTime = now;
             }
+            drawSpectrometer(pulses); 
             requestAnimationFrame(detect);
         }
 
@@ -126,20 +147,19 @@
             const wCard = document.getElementById('q2-card');
             
             let hasRed = r > 10, hasWhite = w > 10;
-            let isSuper = hz >= 10;
+            let isSuper = hz >= 8;
+            let isParallel = hz >= 25;
 
-            document.getElementById('r-text').innerText = hasRed ? (isSuper ? "SUPERPOSITION" : "COLLAPSED |1>") : "OFF |0>";
-            document.getElementById('w-text').innerText = hasWhite ? (isSuper ? "SUPERPOSITION" : "COLLAPSED |1>") : "OFF |0>";
+            document.getElementById('r-text').innerText = hasRed ? (isParallel ? "PARALLEL STATE" : (isSuper ? "SUPERPOSITION" : "COLLAPSED |1>")) : "OFF |0>";
+            document.getElementById('w-text').innerText = hasWhite ? (isParallel ? "PARALLEL STATE" : (isSuper ? "SUPERPOSITION" : "COLLAPSED |1>")) : "OFF |0>";
             
             rCard.className = "qubit-card " + (hasRed ? (isSuper ? "super-active" : "active-red") : "");
             wCard.className = "qubit-card " + (hasWhite ? (isSuper ? "super-active" : "active-white") : "");
 
-            if (isSuper) {
-                if (hasRed && hasWhite) {
-                    document.getElementById('row-parallel').className = 'active-super';
-                } else {
-                    document.getElementById('row-super').className = 'active-super';
-                }
+            if (isParallel && (hasRed || hasWhite)) {
+                document.getElementById('row-parallel').className = 'active-super';
+            } else if (isSuper) {
+                document.getElementById('row-super').className = 'active-super';
             } else if (hasRed || hasWhite) {
                 document.getElementById('row-solid').className = 'active-row';
             } else {
