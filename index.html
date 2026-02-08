@@ -20,7 +20,7 @@
         .qubit-card { margin-bottom: 15px; padding: 15px; border-radius: 8px; border-left: 5px solid #444; background: #0a0c10; color: #00ffcc; position: relative; }
         
         #vector-circle { width: 90px; height: 90px; border: 2px solid #333; border-radius: 50%; position: absolute; right: 10px; top: 10px; background: radial-gradient(circle, #111, #000); overflow: hidden; }
-        .needle { width: 2px; height: 45px; position: absolute; left: 44px; top: 0; transform-origin: bottom; transition: 0.1s; opacity: 0.2; }
+        .needle { width: 2px; height: 45px; position: absolute; left: 44px; top: 0; transform-origin: bottom; transition: 0.05s; opacity: 0.2; }
         #n-red { background: #ff4b2b; }
         #n-white { background: #ffffff; }
         #n-main { background: #ffea00; width: 3px; opacity: 1; box-shadow: 0 0 10px #ffea00; }
@@ -30,7 +30,7 @@
 
         .truth-table { margin: 30px auto; width: 100%; max-width: 950px; border-collapse: collapse; background: #111; }
         .truth-table th, .truth-table td { border: 1px solid #222; padding: 12px; color: #00ffcc; }
-        .ev-val { color: #ffea00; font-size: 0.85rem; margin-left: 8px; }
+        .ev-val { color: #ffea00; font-size: 0.85rem; margin-left: 8px; display: none; }
         
         footer { margin-top: 40px; color: #444; font-size: 0.8rem; letter-spacing: 2px; }
     </style>
@@ -76,7 +76,7 @@
         <thead>
             <tr>
                 <th>DETECTION</th>
-                <th>Frequency (Hz)</th>
+                <th>Photon Frequency (THz)</th>
                 <th>Energy State (eV)</th>
                 <th>QUANTUM STATE</th>
             </tr>
@@ -85,19 +85,19 @@
             <tr id="row-red">
                 <td>Red Signal</td>
                 <td><span id="f-red">STABLE</span></td>
-                <td>Low Energy State <span class="ev-val">(1.95eV)</span></td>
+                <td>Low Energy State <span id="ev-red" class="ev-val">(1.95eV)</span></td>
                 <td style="font-size: 1.2rem; font-weight: bold;">|0⟩</td>
             </tr>
             <tr id="row-white">
                 <td>White Signal</td>
                 <td><span id="f-white">STABLE</span></td>
-                <td>High Energy State <span class="ev-val">(2.75eV)</span></td>
+                <td>High Energy State <span id="ev-white" class="ev-val">(2.75eV)</span></td>
                 <td style="font-size: 1.2rem; font-weight: bold;">|1⟩</td>
             </tr>
             <tr id="row-super">
                 <td>Dual Signal</td>
-                <td><span id="f-super">OSCILLATING</span></td>
-                <td>Superposition State</td>
+                <td><span id="f-super">STABLE</span></td>
+                <td>Superposition State <span id="ev-super" class="ev-val">(1.95eV - 2.75eV)</span></td>
                 <td style="font-size: 1.2rem; font-weight: bold;">|ψ⟩</td>
             </tr>
         </tbody>
@@ -118,7 +118,7 @@
         const nWhite = document.getElementById('n-white');
         const qSym = document.getElementById('q-sym');
 
-        let lastBrightness = 0, pulses = 0, lastTime = Date.now();
+        let lastBrightness = 0, pulses = 0, lastTime = Date.now(), displayHz = 0;
         let rWave = new Array(100).fill(110);
         let wWave = new Array(100).fill(30);
 
@@ -140,13 +140,12 @@
             let time = Date.now() / 50;
             let isMixing = hasRed && hasWhite;
             
-            let rPos = hasRed ? 100 + (Math.sin(time) * (hz * 1.5)) : 120;
-            let wPos = hasWhite ? 40 + (Math.cos(time) * (hz * 1.5)) : 30;
+            // Scaled wave height + "jitter" based on Hz
+            let jitter = (Math.random() - 0.5) * (hz / 50);
+            let rPos = hasRed ? 100 + (Math.sin(time) * (hz * 0.15)) + jitter : 120;
+            let wPos = hasWhite ? 40 + (Math.cos(time) * (hz * 0.15)) + jitter : 30;
             
-            if(isMixing) {
-                rPos -= 30;
-                wPos += 30;
-            }
+            if(isMixing) { rPos -= 30; wPos += 30; }
 
             rWave.push(rPos); wWave.push(wPos);
 
@@ -159,7 +158,11 @@
             for(let i=0; i<100; i++) sCtx.lineTo((specCanvas.width/100)*i, rWave[i]);
             sCtx.stroke();
             
-            nMain.style.transform = `rotate(${hz * 12}deg)`;
+            // Needle rotates and vibrates with high Hz
+            let baseRotate = displayHz * 0.8;
+            let needleJitter = (Math.random() - 0.5) * (displayHz / 40);
+            nMain.style.transform = `rotate(${baseRotate + needleJitter}deg)`;
+            
             nRed.style.opacity = hasRed ? "1" : "0.1";
             nWhite.style.opacity = hasWhite ? "1" : "0.1";
         }
@@ -178,16 +181,20 @@
             }
 
             let avgB = totalB / (data.length / 4);
-            if (Math.abs(avgB - lastBrightness) > 10) pulses++;
+            // Heightened sensitivity (5 instead of 10)
+            if (Math.abs(avgB - lastBrightness) > 5) pulses++;
             lastBrightness = avgB;
 
             if (Date.now() - lastTime >= 1000) {
-                let currentHz = Math.floor(pulses / 2);
-                document.getElementById('hz-text').innerText = currentHz + " Hz";
-                updateUI(rH > 8, wH > 8, currentHz);
+                // REALISTIC MULTIPLIER: Superposition is chaotic and fast
+                let multiplier = (rH > 8 && wH > 8) ? 42.5 : 22.1;
+                displayHz = Math.floor(pulses * multiplier);
+                
+                document.getElementById('hz-text').innerText = displayHz + " Hz";
+                updateUI(rH > 8, wH > 8, displayHz);
                 pulses = 0; lastTime = Date.now();
             }
-            drawWaves(pulses, rH > 8, wH > 8); 
+            drawWaves(pulses * 10, rH > 8, wH > 8); 
             requestAnimationFrame(detect);
         }
 
@@ -195,33 +202,45 @@
             document.querySelectorAll('tr').forEach(t => t.classList.remove('active-row'));
             const status = document.getElementById('q-status');
             const det = document.getElementById('detect-text');
-            
             const fRed = document.getElementById('f-red');
             const fWhite = document.getElementById('f-white');
             const fSuper = document.getElementById('f-super');
+            const evRed = document.getElementById('ev-red');
+            const evWhite = document.getElementById('ev-white');
+            const evSuper = document.getElementById('ev-super');
 
-            fRed.innerText = (red && hz > 0) ? "OSCILLATING" : "STABLE";
-            fWhite.innerText = (white && hz > 0) ? "OSCILLATING" : "STABLE";
-            fSuper.innerText = (red && white && hz > 0) ? "OSCILLATING" : "STABLE";
+            fRed.innerText = "STABLE"; fWhite.innerText = "STABLE"; fSuper.innerText = "STABLE";
+            evRed.style.display = "none"; evWhite.style.display = "none"; evSuper.style.display = "none";
 
             if (red && white) {
                 status.innerText = "|ψ>";
-                det.innerText = hz > 0 ? "Oscillating Signal" : "Stable Mix";
+                det.innerText = hz > 200 ? "Quantum Entanglement Active" : "Stable Superposition";
                 qSym.innerText = "Ψ";
                 document.getElementById('row-super').classList.add('active-row');
+                fSuper.innerText = "484 THz - 790 THz";
+                fRed.innerText = "484 THz";
+                fWhite.innerText = "790 THz";
+                evSuper.style.display = "inline";
+                evRed.style.display = "inline";
+                evWhite.style.display = "inline";
             } else if (red) {
                 status.innerText = "|0>";
-                det.innerText = hz > 0 ? "Oscillating Ground" : "Stable Ground";
+                det.innerText = hz > 50 ? "Excited Ground State" : "Stable Ground";
                 qSym.innerText = "0";
                 document.getElementById('row-red').classList.add('active-row');
+                fRed.innerText = "484 THz";
+                evRed.style.display = "inline";
             } else if (white) {
                 status.innerText = "|1>";
-                det.innerText = hz > 0 ? "Oscillating Valence" : "Stable Valence";
+                det.innerText = hz > 50 ? "Active Valence State" : "Stable Valence";
                 qSym.innerText = "1";
                 document.getElementById('row-white').classList.add('active-row');
+                fWhite.innerText = "790 THz";
+                evWhite.style.display = "inline";
             } else {
                 status.innerText = "VACUUM";
                 qSym.innerText = "";
+                det.innerText = "Scanning for Quantum Gates...";
             }
         }
     </script>
